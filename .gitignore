@@ -1,0 +1,6 @@
+__pycache__
+.venv
+*.pdf
+test*
+pyrightconfig.json
+typestubs
