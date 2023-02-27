@@ -1,8 +1,9 @@
 from fastapi import APIRouter, UploadFile, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
-from .dependencies import S3Dep, get_db
-from ..models.file import File, Item
+from .dependencies import S3Dep
+from ..db.db import get_session
+from ..schemas.schema import File, Item
 
 router = APIRouter(
     prefix="/files",
@@ -11,7 +12,7 @@ router = APIRouter(
 )
 
 @router.post("/uploadfile/")
-def upload_file(file: UploadFile, title: str | None = None, s3: S3Dep = Depends(S3Dep), db: Session = Depends(get_db)):
+def upload_file(file: UploadFile, title: str | None = None, s3: S3Dep = Depends(S3Dep), session: Session = Depends(get_session)):
     assert (file and file.filename), "Invalid file"
     if not title:
         title = file.filename
@@ -19,15 +20,14 @@ def upload_file(file: UploadFile, title: str | None = None, s3: S3Dep = Depends(
     if s3_object_name:
         # Create the File entry 
         new_file = File(s3_object_name=s3_object_name)
-
         # Flush to gain the auto-assigned id of the new File entry
-        db.add(new_file)
-        db.flush()
+        session.add(new_file)
+        session.flush()
 
         # Create the Item entry and link the new File entry id.
         new_item = Item(title=file.filename, file_id=new_file.id)
-        db.add(new_item)
-        db.commit()
+        session.add(new_item)
+        session.commit()
         return {"Message": "File Upload Succeded"}
 
     # There might a better status code to use here

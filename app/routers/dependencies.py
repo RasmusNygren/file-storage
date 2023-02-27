@@ -1,19 +1,7 @@
-from typing import Generator, BinaryIO
-from ..db.db import SessionLocal
-
+from typing import BinaryIO
 import boto3
 
 # TODO: The try/except blocks should more defined except catches
-
-
-def get_db() -> Generator:
-    try:
-        db = SessionLocal()
-        yield db
-    finally:
-        db.close() # type: ignore
-
-
 
 
 class S3Dep():

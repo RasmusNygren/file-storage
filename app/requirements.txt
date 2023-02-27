@@ -4,5 +4,7 @@ uvicorn==0.20.0
 boto3
 python-multipart
 sqlalchemy
-"python-jose[cryptography]"
-"passlib[bcrypt]"
+python-jose[cryptography]
+passlib[bcrypt]
+sqlmodel
+python-dotenv

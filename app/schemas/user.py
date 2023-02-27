@@ -8,10 +8,19 @@ class User(BaseModel):
     username: str | None = None
     items: list[Item] | None = None
 
-class UserCreate(BaseModel):
-    email: str
-    password: str
 
 class UserInDb(User):
     password: str
-    
+
+
+class UserCreate(User):
+    email: str
+    password: str
+
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+

@@ -1,19 +1,16 @@
-from sqlalchemy import create_engine, DateTime, func
-from sqlalchemy.orm import sessionmaker, declarative_base, Mapped, mapped_column, declared_attr
+from sqlmodel import SQLModel, create_engine, Session, func, Field
+from datetime import datetime
 
 import os
 
 pg_password = os.environ["pg_password"]
-engine = create_engine(f"postgresql://postgres:{pg_password}@db.yzotxmtbzhslbigptkkj.supabase.co:5432/postgres")
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_engine(f"postgresql://postgres:{pg_password}@db.yzotxmtbzhslbigptkkj.supabase.co:5432/postgres", echo=True)
+def get_session():
+    with Session(engine) as session:
+        yield session
 
 
-class Base():
-    @declared_attr
-    def __tablename__(cls):
-        return cls.__name__.lower() # type: ignore
-    created_at: Mapped["DateTime"] = mapped_column(DateTime, nullable=False, default=func.now())
-    modified_at: Mapped["DateTime"] = mapped_column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
-
-Base = declarative_base(cls=Base)
+class Base(SQLModel):
+    created_at: datetime = Field(default=func.now())
+    modified_at: datetime = Field(default=func.now(), sa_column_kwargs={"on_update": func.now()})
