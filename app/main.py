@@ -4,9 +4,9 @@ import uvicorn
 from .routers import files, users
 from dotenv import load_dotenv
 
-load_dotenv()
 
 app = FastAPI()
+load_dotenv()
 
 # Temporary hack to ensure that Base is aware of all the defined models before creating the tables
 from .schemas import schema

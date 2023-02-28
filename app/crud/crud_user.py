@@ -3,30 +3,28 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from ..schemas.schema import User, UserCreate, Token
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import HTTPException, status
 
 from jose import jwt, JWTError
 
 from sqlmodel import Session, select
+import os
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-# Do not store the key here, regenerate and move to dotenv file
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30 
+JWT_ALGORITHM = "HS256"
 
 
-def verify_password(plain_password: str, hashed_password: str):
-    pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
 
-def get_password_hash(password: str):
+def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def authenticate_user(username: str, password: str, session: Session):
+def authenticate_user(username: str, password: str, session: Session) -> User | bool:
     user = get_user_by_username(username, session)
     if not user:
         return False
@@ -62,35 +60,19 @@ def get_user_by_username(username: str, session: Session) -> User | None:
     return None
 
 
-def get_user_by_email(email: str, db: Session) -> User | None:
+def get_user_by_email(email: str, session: Session) -> User | None:
     q = select(User).where(User.email == email)
-    user = db.execute(q).one_or_none()
+    user = session.execute(q).one_or_none()
     if user:
         return user[0]
     return None
+
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
 
     expire = datetime.utcnow() + expires_delta if expires_delta else datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, os.environ["JWT_SECRET_KEY"], algorithm=JWT_ALGORITHM)
     return encoded_jwt
-
-
-
-async def login_for_access_token(username: str, password: str, session: Session):
-    user = authenticate_user(username, password, session)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
 
