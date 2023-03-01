@@ -35,9 +35,9 @@ def authenticate_user(username: str, password: str, session: Session) -> User | 
 
 def create(obj: UserCreate, session: Session) -> User:
     db_obj = User(
-        email = obj.email,
-        password = get_password_hash(obj.password),
-        username = obj.username,
+        email=obj.email,
+        password=get_password_hash(obj.password),
+        username=obj.username,
     )
     session.add(db_obj)
     session.commit()
@@ -71,8 +71,13 @@ def get_user_by_email(email: str, session: Session) -> User | None:
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
 
-    expire = datetime.utcnow() + expires_delta if expires_delta else datetime.utcnow() + timedelta(minutes=15)
+    expire = (
+        datetime.utcnow() + expires_delta
+        if expires_delta
+        else datetime.utcnow() + timedelta(minutes=15)
+    )
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, os.environ["JWT_SECRET_KEY"], algorithm=JWT_ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, os.environ["JWT_SECRET_KEY"], algorithm=JWT_ALGORITHM
+    )
     return encoded_jwt
-

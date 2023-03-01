@@ -21,9 +21,12 @@ ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
 
-class S3Dep():
+
+class S3Dep:
     def __init__(self):
-        sess = boto3.Session(profile_name="fastapi-lambda") # Only for dev else boto3.client("s3")
+        sess = boto3.Session(
+            profile_name="fastapi-lambda"
+        )  # Only for dev else boto3.client("s3")
         self.s3 = sess.client("s3")
 
     def list_buckets(self):
@@ -33,7 +36,7 @@ class S3Dep():
         # Make the S3 key identifier be the same as the file name
         self.s3.upload_file(title, "my-lambda-fastapi-bucket", title)
 
-    def upload_file_obj(self, file: BinaryIO, title: str)  -> str | None:
+    def upload_file_obj(self, file: BinaryIO, title: str) -> str | None:
         """
         Return True if the upload succeds, else return False
         Returns the s3 object key, None if the upload failed
@@ -43,9 +46,8 @@ class S3Dep():
         try:
             self.s3.upload_fileobj(file, "my-lambda-fastapi-bucket", s3_object_key)
             return s3_object_key
-        except: 
+        except:
             return None
-                
 
     # TODO: Might have to convert to absolute path to avoids errors in the future
     def get_file(self, object_name: str, filename: str | None = None) -> str | None:
@@ -58,18 +60,22 @@ class S3Dep():
         try:
             self.s3.download_file("my-lambda-fastapi-bucket", object_name, filename)
             return filename
-        except: 
+        except:
             return None
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)) -> User:
+def get_current_user(
+    token: str = Depends(oauth2_scheme), session: Session = Depends(get_session)
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, os.environ["JWT_SECRET_KEY"], algorithms=[ALGORITHM])
+        payload = jwt.decode(
+            token, os.environ["JWT_SECRET_KEY"], algorithms=[ALGORITHM]
+        )
         username: str | None = payload.get("sub")
 
         if username is None:
@@ -84,11 +90,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), session: Session = Dep
 
 def get_current_admin(user: User = Depends(get_current_user)):
     credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Admin privileges missing",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Admin privileges missing",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     if not user.is_admin:
         raise credentials_exception
     return user
-

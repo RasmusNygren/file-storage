@@ -31,6 +31,7 @@ class ItemBase(SQLModel):
 
     owner_id: int = Field(foreign_key="user.id")
 
+
 class Item(ItemBase, table=True):
     id: int | None = Field(primary_key=True)
 
@@ -40,4 +41,3 @@ class Item(ItemBase, table=True):
 class Token(SQLModel):
     access_token: str
     token_type: str
-

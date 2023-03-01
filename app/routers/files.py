@@ -7,9 +7,7 @@ from sqlmodel import select, Session
 
 
 router = APIRouter(
-    prefix="/files",
-    tags=["files"],
-    responses={404: {"Description": "Not found"}}
+    prefix="/files", tags=["files"], responses={404: {"Description": "Not found"}}
 )
 
 
@@ -27,11 +25,12 @@ router = APIRouter(
 
 # Must be admin endpoint, users retrieve files via item.
 @router.get("/{id}")
-def get_file_by_file_id(id: int,
-                        s3: S3Dep = Depends(S3Dep),
-                        session: Session = Depends(get_session),
-                        _ = Depends(get_current_admin)
-                        ):
+def get_file_by_file_id(
+    id: int,
+    s3: S3Dep = Depends(S3Dep),
+    session: Session = Depends(get_session),
+    _=Depends(get_current_admin),
+):
     q = select(File).where(File.id == id)
     result = session.exec(q).first()
     if result:
@@ -39,4 +38,3 @@ def get_file_by_file_id(id: int,
         if file:
             return FileResponse(file)
     raise HTTPException(status_code=404, detail=f"File with id {id} does not exist")
-
