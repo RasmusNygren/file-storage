@@ -1,10 +1,10 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional
 
 
 class UserBase(SQLModel):
     email: str = Field(unique=True, index=True)
     username: str | None = None
+
 
 class User(UserBase, table=True):
     id: int | None = Field(primary_key=True)
@@ -34,7 +34,7 @@ class ItemBase(SQLModel):
 class Item(ItemBase, table=True):
     id: int | None = Field(primary_key=True)
 
-    owner: Optional["User"] = Relationship(back_populates="items")
+    owner: list["User"] | None = Relationship(back_populates="items")
 
 
 class Token(SQLModel):
