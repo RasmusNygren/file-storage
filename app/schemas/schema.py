@@ -9,6 +9,7 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     id: int | None = Field(primary_key=True)
     items: list["Item"] | None = Relationship(back_populates="owner")
+    is_admin: bool | None = False
     password: str
 
 
@@ -20,7 +21,7 @@ class UserCreate(UserBase):
 
 class File(SQLModel, table=True):
     id: int | None = Field(primary_key=True)
-    s3_object_name: str
+    s3_object_name: str = Field(nullable=False)
 
 
 class ItemBase(SQLModel):

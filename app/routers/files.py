@@ -1,9 +1,10 @@
-from fastapi import APIRouter, UploadFile, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from .dependencies import S3Dep
-from ..db.db import get_session
-from ..schemas.schema import File, Item
+from .dependencies import S3Dep, get_session, get_current_admin
+from ..schemas.schema import File
+
+from sqlmodel import select, Session
+
 
 router = APIRouter(
     prefix="/files",
@@ -11,33 +12,31 @@ router = APIRouter(
     responses={404: {"Description": "Not found"}}
 )
 
-@router.post("/uploadfile/")
-def upload_file(file: UploadFile, title: str | None = None, s3: S3Dep = Depends(S3Dep), session: Session = Depends(get_session)):
-    assert (file and file.filename), "Invalid file"
-    if not title:
-        title = file.filename
-    s3_object_name = s3.upload_file_obj(file.file, title)
-    if s3_object_name:
-        # Create the File entry 
-        new_file = File(s3_object_name=s3_object_name)
-        # Flush to gain the auto-assigned id of the new File entry
-        session.add(new_file)
-        session.flush()
 
-        # Create the Item entry and link the new File entry id.
-        new_item = Item(title=file.filename, file_id=new_file.id)
-        session.add(new_item)
-        session.commit()
-        return {"Message": "File Upload Succeded"}
+# @router.get("/")
+# def get_file(file: str = Query(title="S3 Object Name"),
+#              s3: S3Dep = Depends(S3Dep),
+#              user: User = Depends(get_current_admin)
+#              ):
+#     filename = s3.get_file(file)
+#     if filename:
+#         return FileResponse(filename)
 
-    # There might a better status code to use here
-    return HTTPException(status_code=400, detail="File upload failed")
+#     return HTTPException(status_code=404, detail="File does not exist")
 
-# TODO: This should have query parameter validation
-@router.get("/getfile/")
-def get_file(file: str, s3: S3Dep = Depends(S3Dep)):
-    filename = s3.get_file(file)
-    if filename:
-        return FileResponse(filename)
 
-    return HTTPException(status_code=404, detail="File does not exist")
+# Must be admin endpoint, users retrieve files via item.
+@router.get("/{id}")
+def get_file_by_file_id(id: int,
+                        s3: S3Dep = Depends(S3Dep),
+                        session: Session = Depends(get_session),
+                        _ = Depends(get_current_admin)
+                        ):
+    q = select(File).where(File.id == id)
+    result = session.exec(q).first()
+    if result:
+        file = s3.get_file(result.s3_object_name)
+        if file:
+            return FileResponse(file)
+    raise HTTPException(status_code=404, detail=f"File with id {id} does not exist")
+

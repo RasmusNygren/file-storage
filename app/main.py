@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from mangum import Mangum
 import uvicorn
-from .routers import files, users
+from .routers import files, users, items
 from dotenv import load_dotenv
 
 
@@ -15,6 +15,7 @@ from .db.db import SQLModel, engine
 SQLModel.metadata.create_all(bind=engine, checkfirst=True)
 
 app.include_router(files.router)
+app.include_router(items.router)
 app.include_router(users.router)
 
 @app.get("/")
