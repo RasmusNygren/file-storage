@@ -1,9 +1,11 @@
+import shortuuid
+
 from fastapi import APIRouter, UploadFile, Depends, HTTPException
-from fastapi.responses import FileResponse
 from sqlmodel import Session, select
 
-from ..schemas.schema import User, File, Item
+from ..schemas.schema import User, File, Item, ItemUpdateRead
 from .dependencies import S3Dep, get_current_user, get_session
+
 
 
 router = APIRouter(
@@ -20,6 +22,10 @@ def get_items(
     return result
 
 
+def _generate_uuid(length: int = 6):
+    return shortuuid.uuid()[:length]
+
+
 @router.post("/")
 def upload_item(
     file: UploadFile,
@@ -29,12 +35,14 @@ def upload_item(
     user: User = Depends(get_current_user),
 ):
     assert file and file.filename, "Invalid file"
+
     if not title:
         title = file.filename
-    s3_object_name = s3.upload_file_obj(file.file, title)
-    if s3_object_name:
+    s3_object_key = f"{_generate_uuid()}/{user.id}/{file.filename}"
+    s3_object_key = s3.upload_file_obj(file.file, title, s3_object_key=s3_object_key)
+    if s3_object_key:
         # Create the File entry
-        new_file = File(s3_object_name=s3_object_name)
+        new_file = File(s3_object_name=s3_object_key)
 
         # Flush to gain the auto-assigned id of the new File entry
         session.add(new_file)
@@ -58,10 +66,30 @@ def get_item(
     session: Session = Depends(get_session),
 ):
     q = select(Item).where(Item.id == item_id, Item.owner_id == user.id)
-    val = session.exec(q).first()
-    file = None
-    if val:
-        file_q = select(File).where(File.id == val.file_id)
-        file = session.exec(file_q).first()
-    print("file here: ", file)
-    return val
+    result = session.exec(q).first()
+    # file = None
+    # if val:
+    #     file_q = select(File).where(File.id == val.file_id)
+    #     file = session.exec(file_q).first()
+    # print("file here: ", file)
+    return result
+
+
+@router.post("/setread/")
+def set_item_read_status(
+        item_update: ItemUpdateRead,
+        user: User = Depends(get_current_user),
+        session: Session = Depends(get_session)
+        ):
+    q = select(Item).where(Item.id == item_update.id, Item.owner_id == user.id)
+    item = session.exec(q).first()
+    item.read = item_update.read
+    session.add(item)
+    session.commit()    
+
+    return {"Message": "Read status successfully updated",
+            "New read status": item_update.read}
+
+
+
+

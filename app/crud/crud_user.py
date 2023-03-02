@@ -13,9 +13,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-JWT_ALGORITHM = "HS256"
-
-
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -78,6 +75,6 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
-        to_encode, os.environ["JWT_SECRET_KEY"], algorithm=JWT_ALGORITHM
+        to_encode, os.environ["JWT_SECRET_KEY"], algorithm=os.environ["JWT_ALGORITHM"]
     )
     return encoded_jwt

@@ -38,6 +38,12 @@ class Item(ItemBase, table=True):
     owner: list["User"] | None = Relationship(back_populates="items")
 
 
+class ItemUpdateRead(SQLModel):
+    id: int
+    read: bool
+
+
 class Token(SQLModel):
     access_token: str
     token_type: str
+

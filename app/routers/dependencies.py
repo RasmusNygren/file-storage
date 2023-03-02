@@ -1,7 +1,7 @@
 import os
+import logging
 
 from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from sqlmodel import Session
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
@@ -14,11 +14,12 @@ from ..schemas.schema import User
 
 from typing import BinaryIO
 import boto3
+from botocore.exceptions import ClientError
 
 # TODO: The try/except blocks should more defined except catches
 
-ALGORITHM = "HS256"
 
+Logger = logging.getLogger("routers_dependencies")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
 
 
@@ -36,17 +37,17 @@ class S3Dep:
         # Make the S3 key identifier be the same as the file name
         self.s3.upload_file(title, "my-lambda-fastapi-bucket", title)
 
-    def upload_file_obj(self, file: BinaryIO, title: str) -> str | None:
+    def upload_file_obj(self, file: BinaryIO, title: str, s3_object_key: str | None = None) -> str | None:
         """
         Return True if the upload succeds, else return False
         Returns the s3 object key, None if the upload failed
         """
-        # The S3 key identifier be the same as the file name
-        s3_object_key = title
+        s3_object_key = title if s3_object_key is None else s3_object_key
         try:
             self.s3.upload_fileobj(file, "my-lambda-fastapi-bucket", s3_object_key)
             return s3_object_key
-        except:
+        except ClientError as e:
+            Logger.warning(e)
             return None
 
     # TODO: Might have to convert to absolute path to avoids errors in the future
@@ -60,7 +61,8 @@ class S3Dep:
         try:
             self.s3.download_file("my-lambda-fastapi-bucket", object_name, filename)
             return filename
-        except:
+        except ClientError as e:
+            Logger.warning(e)
             return None
 
 
@@ -74,9 +76,10 @@ def get_current_user(
     )
     try:
         payload = jwt.decode(
-            token, os.environ["JWT_SECRET_KEY"], algorithms=[ALGORITHM]
+            token, os.environ["JWT_SECRET_KEY"], algorithms=[os.environ["JWT_ALGORITHM"]]
         )
         username: str | None = payload.get("sub")
+
 
         if username is None:
             raise credentials_exception

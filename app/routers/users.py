@@ -15,8 +15,9 @@ from .dependencies import get_current_user
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
+# TODO: Consider moving the global variables to .env file or create a config struct/handler.
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-ALGORITHM = "HS256"
 
 
 router = APIRouter(
