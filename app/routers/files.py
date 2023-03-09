@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
-from .dependencies import S3Dep, get_session, get_current_admin
-from ..schemas.schema import File
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse 
+from .dependencies import S3Dep, get_session, get_current_user
+from ..schemas.schema import File, User
 
 from sqlmodel import select, Session
 
@@ -24,17 +24,24 @@ router = APIRouter(
 
 
 # Must be admin endpoint, users retrieve files via item.
-@router.get("/{id}")
+@router.get("/{file_id}")
 def get_file_by_file_id(
-    id: int,
-    s3: S3Dep = Depends(S3Dep),
-    session: Session = Depends(get_session),
-    _=Depends(get_current_admin),
+    file_id: int,
+    s3: S3Dep=Depends(S3Dep),
+    session: Session=Depends(get_session),
+    user: User=Depends(get_current_user),
 ):
-    q = select(File).where(File.id == id)
+    q = select(File).where(File.id == file_id)
     result = session.exec(q).first()
     if result:
+        if not result.item.owner_id == user.id and not user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="You do not have access to that file",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         file = s3.get_file(result.s3_object_name)
         if file:
             return FileResponse(file)
     raise HTTPException(status_code=404, detail=f"File with id {id} does not exist")
+

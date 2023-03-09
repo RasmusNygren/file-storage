@@ -53,7 +53,8 @@ def upload_item(
         new_item = Item(title=title, file_id=new_file.id, owner_id=user.id)
         session.add(new_item)
         session.commit()
-        return {"Message": "File Upload Succeded", "Item id": new_item.id}
+        return {"Message": "File Upload Succeded",
+                "Item id": new_item.id}
 
     # There might a better status code to use here
     return HTTPException(status_code=400, detail="File upload failed")
@@ -67,11 +68,8 @@ def get_item(
 ):
     q = select(Item).where(Item.id == item_id, Item.owner_id == user.id)
     result = session.exec(q).first()
-    # file = None
-    # if val:
-    #     file_q = select(File).where(File.id == val.file_id)
-    #     file = session.exec(file_q).first()
-    # print("file here: ", file)
+    if not result:
+        raise HTTPException(status_code=404, detail=f"The item with id {item_id} does not exist or you do not have access")
     return result
 
 
